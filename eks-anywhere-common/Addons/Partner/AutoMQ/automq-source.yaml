@@ -5,6 +5,6 @@ metadata:
   name: bitnami-charts
   namespace: automq
 spec:
-  interval: 1h
+  interval: 30s
   type: oci
   url: oci://registry-1.docker.io/bitnamicharts
