@@ -1,0 +1,136 @@
+# 确保 bitnami Helm 仓库已经添加
+# apiVersion: source.toolkit.fluxcd.io/v1beta2
+# kind: HelmRepository
+# metadata:
+#   name: bitnami-charts
+#   namespace: automq
+# spec:
+#   interval: 1h
+#   url: https://charts.bitnami.com/bitnami
+
+---
+# HelmRelease for AutoMQ (Kafka)
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: automq-release
+  namespace: automq
+spec:
+  interval: 5m
+  releaseName: automq-release
+  targetNamespace: automq
+  install:
+    createNamespace: true
+  # 依赖于 MinIO HelmRelease，确保 MinIO 先于 AutoMQ 准备就绪
+  dependsOn:
+    - name: minio
+      namespace: automq
+  chart:
+    spec:
+      chart: kafka
+      version: "31.5.0"
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami-charts
+        namespace: automq
+  values:
+    image:
+      # 使用 docker-compose 文件中指定的镜像
+      registry: automqinc
+      repository: automq
+      tag: 1.5.3
+      pullPolicy: Always
+    extraEnvVars:
+      # 使用 MinIO 的凭据
+      - name: KAFKA_S3_ACCESS_KEY
+        value: "minioadmin"
+      - name: KAFKA_S3_SECRET_KEY
+        value: "minioadmin"
+    controller:
+      replicaCount: 1
+      resources:
+        requests:
+          cpu: "1000m"
+          memory: "4Gi"
+        limits:
+          cpu: "2000m"
+          memory: "6Gi"
+      heapOpts: -Xms1g -Xmx4g -XX:MetaspaceSize=96m -XX:MaxDirectMemorySize=1G
+      extraConfig: |
+        elasticstream.enable=true
+        autobalancer.client.auth.sasl.mechanism=PLAIN
+        autobalancer.client.auth.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="inter_broker_user" password="interbroker-password-placeholder" user_inter_broker_user="interbroker-password-placeholder";
+        autobalancer.client.auth.security.protocol=SASL_PLAINTEXT
+        autobalancer.client.listener.name=INTERNAL
+        s3.wal.cache.size=2147483648
+        s3.block.cache.size=1073741824
+        s3.stream.allocator.policy=POOLED_DIRECT
+        s3.network.baseline.bandwidth=245366784
+        # 更新 S3 配置以指向集群内的 MinIO 服务
+        # http://minio:9000 是通过 Kubernetes 服务发现实现的
+        s3.ops.buckets='1@s3://automq-ops?region=us-east-1&endpoint=http://minio:9000&pathStyle=true'
+        s3.data.buckets='0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true'
+        s3.wal.path='0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true'
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/instance
+                    operator: In
+                    values:
+                      - automq-release
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - controller-eligible
+                      - broker
+              topologyKey: kubernetes.io/hostname
+      persistence:
+        size: 20Gi
+
+---
+# HelmRelease for MinIO
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: minio
+  namespace: automq
+spec:
+  interval: 5m
+  releaseName: minio
+  targetNamespace: automq
+  chart:
+    spec:
+      chart: minio
+      version: "14.x.x"
+      sourceRef:
+        kind: HelmRepository
+        name: bitnami-charts
+        namespace: automq
+  values:
+    # 设置与 docker-compose 中一致的凭据
+    # 警告：在生产环境中应使用更安全的凭据管理方式
+    auth:
+      rootUser: "minioadmin"
+      rootPassword: "minioadmin"
+    
+    # 使用 Helm Chart 的功能自动创建 buckets，替代 mc 服务
+    buckets:
+      - name: automq-data
+        policy: public # 对应 "mc anonymous set public"
+      - name: automq-ops
+        policy: public
+        
+    # 确保 API 端口是 9000
+    service:
+      ports:
+        api: 9000
+        
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
