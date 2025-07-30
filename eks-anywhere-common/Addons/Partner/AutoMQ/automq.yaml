@@ -111,14 +111,17 @@ spec:
     auth:
       rootUser: "minioadmin"
       rootPassword: "minioadmin"
-    buckets:
-      - name: automq-data
-        policy: public
-      - name: automq-ops
-        policy: public
-    service:
-      ports:
-        api: 9000
+    
+    # This is the correct structure to enable and configure the bucket creation job
+    postInstallJobs:
+      makeBuckets:
+        enabled: true
+        buckets:
+          - name: automq-data
+            policy: public
+          - name: automq-ops
+            policy: public
+
     persistence:
       enabled: true
       size: 10Gi
@@ -126,3 +129,6 @@ spec:
       requests:
         cpu: "250m"
         memory: "256Mi"
+    service:
+      ports:
+        api: 9000
