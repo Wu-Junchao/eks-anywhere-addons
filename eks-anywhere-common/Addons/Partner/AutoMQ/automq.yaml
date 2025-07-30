@@ -117,7 +117,7 @@ spec:
     # 告诉 MinIO 在所有网络接口上监听 API 请求，而不仅仅是 localhost。
     args:
       - "server"
-      - "/data"      # 这是 MinIO 需要的数据存储路径
+      - "/bitnami/minio/data"      # 这是 MinIO 需要的数据存储路径
       - "--address"
       - ":9000"   # 这是为了让 MinIO 监听所有网络接口
     
