@@ -1,5 +1,5 @@
 # HelmRelease for AutoMQ (Kafka)
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: automq-release
@@ -26,11 +26,6 @@ spec:
     global:
       security:
         allowInsecureImages: true
-    # 1. 覆盖启动命令
-    command: ["/bin/sh"]
-    args:
-      - "-c"
-      - "echo 'Container is in debug mode, sleeping...' && sleep infinity"
 
     
     image:
@@ -44,11 +39,6 @@ spec:
       - name: KAFKA_S3_SECRET_KEY
         value: "minioadmin"
     controller:
-      livenessProbe:
-        enabled: false
-      readinessProbe:
-        enabled: false
-        
       replicaCount: 1
       resources:
         requests:
@@ -90,45 +80,66 @@ spec:
         size: 20Gi
 ---
 # HelmRelease for MinIO
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: minio
-  namespace: automq
+  namespace: automq                  # 不变，仍在 automq
 spec:
-  interval: 5m
-  releaseName: minio
-  targetNamespace: automq
+  interval: 10m
   chart:
     spec:
       chart: minio
-      version: "14.x.x"
+      version: "16.*"
       sourceRef:
         kind: HelmRepository
         name: bitnami-charts
-        namespace: automq
+        namespace: automq            # ← 指向同一命名空间
   values:
-    auth:
-      rootUser: "minioadmin"
-      rootPassword: "minioadmin"
-    
-    # This is the correct structure to enable and configure the bucket creation job
-    postInstallJobs:
-      makeBuckets:
-        enabled: true
-        buckets:
-          - name: automq-data
-            policy: public
-          - name: automq-ops
-            policy: public
+    image:
+      repository: bitnami/minio
+      tag: RELEASE.2025-05-24T17-08-30Z
+    clientImage:
+      repository: bitnami/minio-client
+      tag: 2025.7.21-debian-12-r0
 
-    persistence:
-      enabled: true
-      size: 10Gi
-    resources:
-      requests:
-        cpu: "250m"
-        memory: "256Mi"
+    mode: standalone
+    auth:
+      rootUser:     minioadmin
+      rootPassword: minioadmin
+    extraEnvVars:
+      - name: MINIO_DOMAIN
+        value: "minio"
+
     service:
+      type: ClusterIP
       ports:
-        api: 9000
+        api:     9000
+        console: 9001
+
+    defaultBuckets: "automq-data,automq-ops"
+
+    extraDeploy:
+      - |
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          name: set-bucket-policy
+          namespace: automq
+          annotations:
+            "helm.sh/hook": post-install,post-upgrade
+            "helm.sh/hook-delete-policy": before-hook-creation
+        spec:
+          template:
+            spec:
+              restartPolicy: OnFailure
+              containers:
+                - name: mc
+                  image: bitnami/minio-client:2025.7.21-debian-12-r0
+                  command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      until mc alias set minio http://automq-minio:9000 minioadmin minioadmin; do sleep 2; done
+                      mc anonymous set public minio/automq-data
+                      mc anonymous set public minio/automq-ops
