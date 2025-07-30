@@ -115,6 +115,9 @@ spec:
     # extraArgs:
     #   - "--address"
     #   - ":9000"
+
+    mode: standalone
+    
     service:
       type: ClusterIP
       port: 
