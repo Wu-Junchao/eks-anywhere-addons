@@ -87,13 +87,17 @@ spec:
       persistence:
         size: 20Gi
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: minio
   namespace: automq
 spec:
   interval: 10m
+  releaseName: minio
+  targetNamespace: automq
+  install:
+    createNamespace: true
   chart:
     spec:
       chart: minio
