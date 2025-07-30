@@ -27,10 +27,10 @@ spec:
       security:
         allowInsecureImages: true
     # 1. 覆盖启动命令
-    command: ["/bin/sh"]
-    args:
-      - "-c"
-      - "echo 'Container is in debug mode, sleeping...' && sleep infinity"
+    # command: ["/bin/sh"]
+    # args:
+    #   - "-c"
+    #   - "echo 'Container is in debug mode, sleeping...' && sleep infinity"
     
     image:
       registry: automqinc
@@ -43,10 +43,10 @@ spec:
       - name: KAFKA_S3_SECRET_KEY
         value: "minioadmin"
     controller:
-      livenessProbe:
-        enabled: false
-      readinessProbe:
-        enabled: false
+      # livenessProbe:
+      #   enabled: false
+      # readinessProbe:
+      #   enabled: false
       replicaCount: 1
       resources:
         requests:
