@@ -103,30 +103,26 @@ spec:
         name: bitnami-charts
         namespace: automq
   values:
+    # Auth configuration remains the same
     auth:
       rootUser:     minioadmin
       rootPassword: minioadmin
 
-    # FIX: Add extraArgs to make MinIO listen on all interfaces, not just localhost.
-    # This allows Kubernetes readiness probes and other services to connect.
-    extraArgs:
+    # FIX: The 'extraArgs' key was replaced with 'args' in this chart version.
+    # This correctly appends the argument to the container's startup command.
+    args:
       - "--address"
       - ":9000"
 
-    extraEnvVars:
-      - name: MINIO_DOMAIN
-        value: "minio"
-
-    # IMPROVEMENT: Using the structured format for buckets is more robust.
-    # The policy can be 'none', 'download', 'upload', or 'public'.
+    # Default buckets configuration remains the same
     defaultBuckets:
       - name: "automq-data"
         policy: "none"
       - name: "automq-ops"
         policy: "none"
 
-    # IMPROVEMENT: Correctly define the service port.
-    # The previous `ports` syntax was incorrect for this chart.
+    # FIX: The service port definition also changed.
     service:
       type: ClusterIP
-      port: 9000
+      ports:
+        api: 9000
