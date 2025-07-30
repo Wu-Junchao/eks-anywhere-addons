@@ -115,9 +115,7 @@ spec:
       - ":9000"
     defaultBuckets:
       - name: "automq-data"
-        policy: "none"
       - name: "automq-ops"
-        policy: "none"
     service:
       type: ClusterIP
       port: 9000
