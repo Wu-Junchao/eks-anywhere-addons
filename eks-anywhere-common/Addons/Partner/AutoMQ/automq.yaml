@@ -114,7 +114,7 @@ spec:
     service:
       type: ClusterIP
       ports:
-        api:     9000
+        - "9000:9000"
 
     defaultBuckets: "automq-data,automq-ops"
     defaultBucketPolicy: "public"   # <‑‑ 新增，一行搞定匿名公开

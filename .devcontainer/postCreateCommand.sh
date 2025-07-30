@@ -20,6 +20,7 @@ export PATH=$HOME/.fluxcd/bin:$PATH
 echo "Flux has been installed and PATH is updated for this session."
 
 # Step 3 Setup Minikube
+minikube config set memory 8g
 minikube start
 
 # Step 4 - Installs Flux Controller on your Kubernetes Cluster.
