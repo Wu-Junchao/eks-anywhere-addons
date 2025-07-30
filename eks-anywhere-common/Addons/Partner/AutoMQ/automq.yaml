@@ -111,16 +111,18 @@ spec:
       rootUser:     minioadmin
       rootPassword: minioadmin
     
-    # 完全移除 extraArgs 部分
-    # extraArgs:
-    #   - "--address"
-    #   - ":9000"
-
     mode: standalone
+
+    # 关键修复：必须添加这个 'args' 部分，
+    # 告诉 MinIO 在所有网络接口上监听 API 请求，而不仅仅是 localhost。
+    args:
+      - "--address"
+      - ":9000"
     
+    # 语法修复：这里的 key 应该是 'ports' (复数)。
     service:
       type: ClusterIP
-      port: 
+      ports: 
         api: 9000
 
     defaultBuckets: "automq-data,automq-ops"
