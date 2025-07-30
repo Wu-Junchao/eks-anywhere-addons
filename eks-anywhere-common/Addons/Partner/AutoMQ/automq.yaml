@@ -87,7 +87,7 @@ spec:
       persistence:
         size: 20Gi
 ---
-apiVersion: helm.toolkit.fluxcd.io/v2
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: minio
@@ -97,32 +97,23 @@ spec:
   chart:
     spec:
       chart: minio
-      version: "17.0.16"
+      version: 17.0.16
       sourceRef:
         kind: HelmRepository
         name: bitnami-charts
         namespace: automq
   values:
-    # Auth configuration remains the same
     auth:
       rootUser:     minioadmin
       rootPassword: minioadmin
-
-    # FIX: The 'extraArgs' key was replaced with 'args' in this chart version.
-    # This correctly appends the argument to the container's startup command.
     args:
       - "--address"
       - ":9000"
-
-    # Default buckets configuration remains the same
     defaultBuckets:
       - name: "automq-data"
         policy: "none"
       - name: "automq-ops"
         policy: "none"
-
-    # FIX: The service port definition also changed.
     service:
       type: ClusterIP
-      ports:
-        api: 9000
+      port: 9000
