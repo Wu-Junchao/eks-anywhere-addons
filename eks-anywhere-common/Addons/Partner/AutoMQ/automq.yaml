@@ -115,7 +115,6 @@ spec:
     # extraArgs:
     #   - "--address"
     #   - ":9000"
-    
     service:
       type: ClusterIP
       port: 
@@ -124,19 +123,3 @@ spec:
     defaultBuckets: "automq-data,automq-ops"
     defaultBucketPolicy: "public"
     
-    # 添加健康检查配置
-    livenessProbe:
-      enabled: true
-      initialDelaySeconds: 30
-      periodSeconds: 10
-      timeoutSeconds: 5
-      failureThreshold: 3
-      successThreshold: 1
-    
-    readinessProbe:
-      enabled: true
-      initialDelaySeconds: 30
-      periodSeconds: 10
-      timeoutSeconds: 5
-      failureThreshold: 3
-      successThreshold: 1
