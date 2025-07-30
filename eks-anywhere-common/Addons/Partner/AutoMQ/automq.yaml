@@ -109,28 +109,4 @@ spec:
         api:     9000
 
     defaultBuckets: "automq-data,automq-ops"
-
-    extraDeploy:
-      - |
-        apiVersion: batch/v1
-        kind: Job
-        metadata:
-          name: set-bucket-policy
-          namespace: automq
-          annotations:
-            "helm.sh/hook": post-install,post-upgrade
-            "helm.sh/hook-delete-policy": before-hook-creation
-        spec:
-          template:
-            spec:
-              restartPolicy: OnFailure
-              containers:
-                - name: mc
-                  image: bitnami/minio-client:2025.7.21-debian-12-r0
-                  command:
-                    - /bin/bash
-                    - -c
-                    - |
-                      until mc alias set minio http://automq-minio:9000 minioadmin minioadmin; do sleep 2; done
-                      mc anonymous set public minio/automq-data
-                      mc anonymous set public minio/automq-ops
+    defaultBucketPolicy: "public"   # <‑‑ 新增，一行搞定匿名公开
