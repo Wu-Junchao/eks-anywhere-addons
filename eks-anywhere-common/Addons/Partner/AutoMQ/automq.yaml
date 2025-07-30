@@ -87,12 +87,11 @@ spec:
       persistence:
         size: 20Gi
 ---
-# HelmRelease for MinIO
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: minio
-  namespace: automq                  # 不变，仍在 automq
+  namespace: automq
 spec:
   interval: 10m
   chart:
@@ -102,19 +101,32 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: bitnami-charts
-        namespace: automq            # ← 指向同一命名空间
+        namespace: automq
   values:
     auth:
       rootUser:     minioadmin
       rootPassword: minioadmin
+
+    # FIX: Add extraArgs to make MinIO listen on all interfaces, not just localhost.
+    # This allows Kubernetes readiness probes and other services to connect.
+    extraArgs:
+      - "--address"
+      - ":9000"
+
     extraEnvVars:
       - name: MINIO_DOMAIN
         value: "minio"
 
+    # IMPROVEMENT: Using the structured format for buckets is more robust.
+    # The policy can be 'none', 'download', 'upload', or 'public'.
+    defaultBuckets:
+      - name: "automq-data"
+        policy: "none"
+      - name: "automq-ops"
+        policy: "none"
+
+    # IMPROVEMENT: Correctly define the service port.
+    # The previous `ports` syntax was incorrect for this chart.
     service:
       type: ClusterIP
-      ports:
-        - "9000:9000"
-
-    defaultBuckets: "automq-data,automq-ops"
-    defaultBucketPolicy: "public"   # <‑‑ 新增，一行搞定匿名公开
+      port: 9000
