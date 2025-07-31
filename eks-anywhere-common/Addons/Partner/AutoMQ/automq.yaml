@@ -137,7 +137,7 @@ spec:
             echo "Starting bucket creation job..."
             
             # 循环等待，直到 MinIO 服务准备就绪并且可以设置 alias
-            until mc alias set myminio http://minio.automq.svc.cluster.local:9000 minioadmin minioadmin --config-dir /tmp/.mc; do
+            until mc alias set myminio http://minio:9000 minioadmin minioadmin --config-dir /tmp/.mc; do
               echo "waiting for minio service..."
               sleep 5
             done
