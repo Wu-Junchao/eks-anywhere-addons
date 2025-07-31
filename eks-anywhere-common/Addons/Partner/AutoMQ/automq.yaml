@@ -116,20 +116,13 @@ spec:
 # 3. Kubernetes Job for creating MinIO buckets
 # 这个 Job 负责创建 AutoMQ 需要的 buckets。
 # 它会在 MinIO 服务可用后自动运行一次。
-# Kubernetes Job for initializing MinIO
-# 这个 Job 现在负责所有一次性配置：设置 Region 和创建 Buckets。
-# Kubernetes Job for initializing MinIO
-# FINAL VERSION: Adds --json flag to the restart command to fix the TTY error.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: minio-initializer-job
+  name: minio-bucket-creator
   namespace: automq
 spec:
-  # This will cause the job to be deleted after it succeeds.
-  # Set to a number of seconds, e.g., 3600 for 1 hour.
-  ttlSecondsAfterFinished: 3600
-  backoffLimit: 2
+  backoffLimit: 1
   template:
     spec:
       restartPolicy: OnFailure
@@ -139,35 +132,18 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            set -e # Exit immediately if a command fails.
+            echo "Starting bucket creation job..."
             
-            echo "--- 1. Waiting for MinIO service to be available..."
+            # 使用你修改后的短地址，在同一个 namespace 下是正确的
             until mc alias set myminio http://minio:9000 minioadmin minioadmin --config-dir /tmp/.mc; do
               echo "waiting for minio service..."
               sleep 5
             done
             
-            echo "--- 2. Setting MinIO server region..."
-            mc admin config set myminio region name=us-east-1 --config-dir /tmp/.mc
+            echo "MinIO is ready. Creating buckets..."
             
-            echo "--- 3. Restarting MinIO server to apply region config..."
-            # FIX: Added the --json flag to run in non-interactive mode.
-            mc admin service restart myminio --config-dir /tmp/.mc --json
-            
-            echo "--- 4. Waiting for MinIO to restart (waiting 15 seconds)..."
-            sleep 15
-            
-            echo "--- 5. Re-establishing connection after restart..."
-            until mc alias set myminio http://minio:9000 minioadmin minioadmin --config-dir /tmp/.mc; do
-              echo "waiting for minio service to come back online..."
-              sleep 5
-            done
-
-            echo "--- 6. Verifying region config..."
-            mc admin config get myminio region --config-dir /tmp/.mc
-
-            echo "--- 7. Creating buckets..."
+            # 创建 bucket，`|| true` 表示如果 bucket 已存在，命令会失败，但脚本会继续执行
             mc mb myminio/automq-data --config-dir /tmp/.mc || true
             mc mb myminio/automq-ops --config-dir /tmp/.mc || true
             
-            echo "--- Initialization complete. ---"
+            echo "Buckets creation process finished."
