@@ -57,9 +57,9 @@ spec:
         s3.block.cache.size=1073741824
         s3.stream.allocator.policy=POOLED_DIRECT
         s3.network.baseline.bandwidth=245366784
-        s3.ops.buckets='1@s3://automq-ops?region=us-east-1&endpoint=http://minio:9000&pathStyle=true'
-        s3.data.buckets='0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true'
-        s3.wal.path='0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true'
+        s3.ops.buckets=1@s3://automq-ops?region=us-east-1&endpoint=http://minio:9000&pathStyle=true
+        s3.data.buckets=0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true
+        s3.wal.path=0@s3://automq-data?region=us-east-1&endpoint=http://minio:9000&pathStyle=true
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
