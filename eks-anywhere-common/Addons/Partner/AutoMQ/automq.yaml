@@ -128,5 +128,4 @@ spec:
         api: 9000
 
     defaultBuckets: "automq-data,automq-ops"
-    defaultBucketPolicy: "public"
     
