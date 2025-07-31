@@ -103,6 +103,9 @@ spec:
       rootUser:     minioadmin
       rootPassword: minioadmin
     mode: standalone
+    extraEnvVars:
+      - name: MINIO_REGION
+        value: "us-east-1"
     args:
       - "server"
       - "/bitnami/minio/data"
