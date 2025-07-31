@@ -39,11 +39,11 @@ spec:
       resources:
         requests:
           cpu: "1000m"
-          memory: "4Gi"
+          memory: "2Gi"
         limits:
           cpu: "2000m"
-          memory: "6Gi"
-      heapOpts: -Xms1g -Xmx4g -XX:MetaspaceSize=96m -XX:MaxDirectMemorySize=1g
+          memory: "4Gi"
+      heapOpts: -Xms1g -Xmx2g -XX:MetaspaceSize=96m -XX:MaxDirectMemorySize=1g
       extraConfig: |
         elasticstream.enable=true
         autobalancer.client.auth.sasl.mechanism=PLAIN
