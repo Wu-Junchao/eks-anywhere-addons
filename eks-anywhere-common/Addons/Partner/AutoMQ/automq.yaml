@@ -118,15 +118,18 @@ spec:
 # 它会在 MinIO 服务可用后自动运行一次。
 # Kubernetes Job for initializing MinIO
 # 这个 Job 现在负责所有一次性配置：设置 Region 和创建 Buckets。
+# Kubernetes Job for initializing MinIO
+# FINAL VERSION: Adds --json flag to the restart command to fix the TTY error.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: minio-initializer-job
-  # 我们改个新名字，方便区分。如果需要重新运行，请先删除旧的 Job：
-  # kubectl delete job minio-bucket-creator -n automq
   namespace: automq
 spec:
-  backoffLimit: 2 # 允许一些重试
+  # This will cause the job to be deleted after it succeeds.
+  # Set to a number of seconds, e.g., 3600 for 1 hour.
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 2
   template:
     spec:
       restartPolicy: OnFailure
@@ -136,7 +139,7 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            set -e # 如果任何命令失败，脚本将立即退出
+            set -e # Exit immediately if a command fails.
             
             echo "--- 1. Waiting for MinIO service to be available..."
             until mc alias set myminio http://minio:9000 minioadmin minioadmin --config-dir /tmp/.mc; do
@@ -148,21 +151,22 @@ spec:
             mc admin config set myminio region name=us-east-1 --config-dir /tmp/.mc
             
             echo "--- 3. Restarting MinIO server to apply region config..."
-            mc admin service restart myminio --config-dir /tmp/.mc
+            # FIX: Added the --json flag to run in non-interactive mode.
+            mc admin service restart myminio --config-dir /tmp/.mc --json
             
             echo "--- 4. Waiting for MinIO to restart (waiting 15 seconds)..."
-            sleep 15 # 等待服务器重启
+            sleep 15
             
-            # 再次设置别名，因为重启后连接可能断开
+            echo "--- 5. Re-establishing connection after restart..."
             until mc alias set myminio http://minio:9000 minioadmin minioadmin --config-dir /tmp/.mc; do
               echo "waiting for minio service to come back online..."
               sleep 5
             done
-            
-            echo "--- 5. Verifying region config..."
+
+            echo "--- 6. Verifying region config..."
             mc admin config get myminio region --config-dir /tmp/.mc
 
-            echo "--- 6. Creating buckets..."
+            echo "--- 7. Creating buckets..."
             mc mb myminio/automq-data --config-dir /tmp/.mc || true
             mc mb myminio/automq-ops --config-dir /tmp/.mc || true
             
