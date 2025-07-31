@@ -1,6 +1,6 @@
-# HelmRelease for AutoMQ (Kafka)
-# 这个资源负责部署 AutoMQ 服务。
-# 它通过 dependsOn 设置，确保在 MinIO 部署成功之后再开始部署。
+# 1. HelmRelease for AutoMQ (Kafka)
+# 它会等待 MinIO 服务就绪，并在自己的 Pod 启动失败时自动重试，
+# 直到 minio-bucket-creator Job 完成任务。
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -78,9 +78,7 @@ spec:
       persistence:
         size: 20Gi
 ---
-# HelmRelease for MinIO
-# 这个资源负责部署 MinIO 服务。
-# 我们通过 'args' 参数解决了网络监听和文件权限问题。
+# 2. HelmRelease for MinIO
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -115,9 +113,9 @@ spec:
       ports: 
         api: 9000
 ---
-# Kubernetes Job for creating MinIO buckets
-# 这个 Job 是一个一次性的任务，专门用来自动化创建 MinIO buckets。
-# 它会在 MinIO 服务就绪后自动运行，创建 'automq-data' 和 'automq-ops' 这两个 bucket。
+# 3. Kubernetes Job for creating MinIO buckets
+# 这个 Job 负责创建 AutoMQ 需要的 buckets。
+# 它会在 MinIO 服务可用后自动运行一次。
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -136,7 +134,7 @@ spec:
           - |
             echo "Starting bucket creation job..."
             
-            # 循环等待，直到 MinIO 服务准备就绪并且可以设置 alias
+            # 使用你修改后的短地址，在同一个 namespace 下是正确的
             until mc alias set myminio http://minio:9000 minioadmin minioadmin --config-dir /tmp/.mc; do
               echo "waiting for minio service..."
               sleep 5
@@ -144,10 +142,8 @@ spec:
             
             echo "MinIO is ready. Creating buckets..."
             
-            # 创建 bucket 'automq-data'，如果已存在则忽略
+            # 创建 bucket，`|| true` 表示如果 bucket 已存在，命令会失败，但脚本会继续执行
             mc mb myminio/automq-data --config-dir /tmp/.mc || true
-            
-            # 创建 bucket 'automq-ops'，如果已存在则忽略
             mc mb myminio/automq-ops --config-dir /tmp/.mc || true
             
             echo "Buckets creation process finished."
