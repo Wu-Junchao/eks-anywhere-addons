@@ -16,6 +16,7 @@ spec:
             - name: automq-perf-tester
               image: automqinc/automq:1.5.0-bitnami
               imagePullPolicy: IfNotPresent
+              workingDir: /tmp
               command: ["/bin/sh", "-c"]
               args:
                 - |-
@@ -27,7 +28,7 @@ spec:
                   # Test Kafka connectivity directly, skip network check
                   echo "Testing Kafka connectivity directly..."
 
-                  timeout 30 kafka-broker-api-versions.sh --bootstrap-server ${SERVICE_HOST}:${SERVICE_PORT} >/dev/null 2>&1
+                  timeout 20 kafka-broker-api-versions.sh --bootstrap-server ${SERVICE_HOST}:${SERVICE_PORT} >/dev/null 2>&1
                   if [ $? -eq 0 ]; then
                     echo "Kafka connectivity test passed."
                     # Continue with performance test
@@ -37,7 +38,7 @@ spec:
                   fi
 
                   # Performance test
-                  automq-perf-test.sh \
+                  cd /tmp && automq-perf-test.sh \
                     --bootstrap-server ${SERVICE_HOST}:${SERVICE_PORT} \
                     --producer-configs batch.size=0 \
                     --consumer-configs fetch.max.wait.ms=1000 \
@@ -48,7 +49,7 @@ spec:
                     --consumers-per-group 1 \
                     --record-size 200 \
                     --send-rate 100 \
-                    --warmup-duration 1 \
+                    --warmup-duration 0 \
                     --test-duration 1 \
                     --reset
 
